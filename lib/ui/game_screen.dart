@@ -223,7 +223,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver imp
             child: Row(mainAxisSize: MainAxisSize.min, children: [const Ico('coin', size: 30), const SizedBox(width: 4), Text('COLETAR \$${fmt(s.treasury)}', style: display(17))]),
           ),
         ))),
-        Center(child: _GoalCard(title: g.$1, sub: g.$2, progress: g.$3, done: g.$5, gems: s.goalGems,
+        Center(child: _GoalCard(title: g.$1, sub: g.$2, progress: g.$3, done: g.$5, gems: s.goalGems, open: s.gk == 'prestige',
           onGo: () {
             if (g.$5) { if (s.gk == 'prestige') { openPanel('expansion'); } else { s.claimGoal(); } setState(() {}); return; }
             openPanel(g.$4);
@@ -257,8 +257,9 @@ class _GoalCard extends StatelessWidget {
   final double progress;
   final bool done;
   final int gems;
+  final bool open;
   final VoidCallback onGo;
-  const _GoalCard({required this.title, required this.sub, required this.progress, required this.done, required this.gems, required this.onGo});
+  const _GoalCard({required this.title, required this.sub, required this.progress, required this.done, required this.gems, required this.onGo, this.open = false});
   @override
   Widget build(BuildContext context) => GestureDetector(
         onTap: () { Sfx.click(); onGo(); },
@@ -283,7 +284,7 @@ class _GoalCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: K.navy, width: 2.5), gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: done ? const [Color(0xFFFFF0A8), K.gold] : const [Color(0xFF8CF5A6), K.greenD])),
-              child: done
+              child: done && open ? Text('ABRIR', style: display(17)) : done
                   ? Row(mainAxisSize: MainAxisSize.min, children: [Text('PEGAR', style: display(16)), const SizedBox(width: 2), const Ico('gem', size: 20), Text('$gems', style: display(15))])
                   : Text('IR', style: display(18)),
             ),
