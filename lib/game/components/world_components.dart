@@ -168,7 +168,7 @@ class ReceptionComponent extends Component with HasGameReference<HospitalGame> {
       for (final xx in [0.8, 1.7, 2.6, 3.5, 4.4]) Vector2(xx, yy),
   ];
 
-  bool contains(Vector2 gp) => gp.x >= 0 && gp.x <= 5 && gp.y >= 2 && gp.y <= 7;
+  bool hit(Vector2 gp) => gp.x >= 0 && gp.x <= 5 && gp.y >= 2 && gp.y <= 7;
 
   @override
   void render(Canvas c) {
@@ -179,7 +179,7 @@ class ReceptionComponent extends Component with HasGameReference<HospitalGame> {
       _pic = recordPicture(_draw);
     }
     c.drawPicture(_pic!);
-    final q = game.queue.length, max = Eco.queueMax(game.s);
+    final q = game.pQueue.length, max = Eco.queueMax(game.s);
     TextCache.pill(c, 'Recepção  Nv ${game.s.receptionLevel}', Iso.p(2.5, 3.2, 64), 10,
         const Color(0xFFE91E63), Colors.white);
     TextCache.draw(c, 'Fila $q/$max', Iso.p(2.5, 3.2, 47), 9,
@@ -243,7 +243,7 @@ class TreasuryComponent extends Component with HasGameReference<HospitalGame> {
   static final depositSpot = Vector2(2.5, 10.6);
   static Vector2 home(int i) => Vector2(0.7 + i * 0.75, 12.8);
 
-  bool contains(Vector2 gp) => gp.x >= 0 && gp.x <= 5 && gp.y >= 9 && gp.y <= 14;
+  bool hit(Vector2 gp) => gp.x >= 0 && gp.x <= 5 && gp.y >= 9 && gp.y <= 14;
 
   @override
   void render(Canvas c) {

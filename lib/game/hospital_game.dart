@@ -26,7 +26,7 @@ class HospitalGame extends FlameGame {
   final List<RoomComponent> rooms = [];
   late final ReceptionComponent reception;
   late final TreasuryComponent treasury;
-  final List<Patient> queue = [];
+  final List<Patient> pQueue = [];
   final List<Carrier> carriers = [];
   final List<Person> wanderers = [];
   Person? receptionist;
@@ -140,10 +140,10 @@ class HospitalGame extends FlameGame {
     final gp = Iso.toGrid(w.x, w.y);
     String? target;
     for (final r in rooms) {
-      if (r.contains(gp)) target = 'room:${r.type.id}';
+      if (r.hit(gp)) target = 'room:${r.type.id}';
     }
-    if (target == null && reception.contains(gp)) target = 'reception';
-    if (target == null && treasury.contains(gp)) target = 'treasury';
+    if (target == null && reception.hit(gp)) target = 'reception';
+    if (target == null && treasury.hit(gp)) target = 'treasury';
     if (target != null) {
       Sfx.click();
       onTapTarget?.call(target);
@@ -257,10 +257,10 @@ class HospitalGame extends FlameGame {
       }
     }
     // Emergências que esperaram demais
-    for (final p in queue.toList()) {
+    for (final p in pQueue.toList()) {
       if (p.emergency && p.emergencyLeft <= 0) {
-        final idx = queue.indexOf(p);
-        queue.remove(p);
+        final idx = pQueue.indexOf(p);
+        pQueue.remove(p);
         if (idx == 0) checkinProgress = 0;
         s.rep = math.max(0, s.rep - 10);
         s.toast('😞 Uma emergência não foi atendida a tempo (-10 rep)');
@@ -274,7 +274,7 @@ class HospitalGame extends FlameGame {
 
   // ================================================================ pacientes
   void spawnPatient({bool emergency = false, Vector2? from}) {
-    if (!emergency && queue.length >= Eco.queueMax(s)) {
+    if (!emergency && pQueue.length >= Eco.queueMax(s)) {
       s.onTurnedAway();
       if (time - _lastFullMsg > 5) {
         _lastFullMsg = time;
@@ -287,9 +287,9 @@ class HospitalGame extends FlameGame {
     final p = Patient(start, vip: vip, emergency: emergency, sick: s.epidemic && rnd.nextDouble() < 0.7);
     world.add(p);
     if (emergency) {
-      queue.insert(queue.isEmpty ? 0 : 1, p);
+      pQueue.insert(pQueue.isEmpty ? 0 : 1, p);
     } else {
-      queue.add(p);
+      pQueue.add(p);
     }
     final path = from == null
         ? [Vector2(start.x, 8.0), Vector2(-1, 8.0), Vector2(0.4, 8.0)]
@@ -305,8 +305,8 @@ class HospitalGame extends FlameGame {
       : ReceptionComponent.chairs[(i - 1) % ReceptionComponent.chairs.length];
 
   void _layoutQueue() {
-    for (int i = 0; i < queue.length; i++) {
-      final p = queue[i];
+    for (int i = 0; i < pQueue.length; i++) {
+      final p = pQueue[i];
       if (p.state != PState.queued) continue;
       final target = queueSpot(i);
       if (p.g.distanceTo(target) > 0.05) {
@@ -317,12 +317,12 @@ class HospitalGame extends FlameGame {
   }
 
   void _processQueue(double dt) {
-    if (queue.isEmpty) {
+    if (pQueue.isEmpty) {
       checkinProgress = 0;
       receptionist?.anim = Anim.idle;
       return;
     }
-    final head = queue.first;
+    final head = pQueue.first;
     if (head.state != PState.queued || head.moving ||
         head.g.distanceTo(ReceptionComponent.deskSpot) > 0.08) {
       receptionist?.anim = Anim.idle;
@@ -344,7 +344,7 @@ class HospitalGame extends FlameGame {
     head.waitingForRoom = false;
     final slot = room.freeSlot();
     room.reserve(slot, head);
-    queue.removeAt(0);
+    pQueue.removeAt(0);
     checkinProgress = 0;
     head.state = PState.toRoom;
     head.room = room;
@@ -453,7 +453,7 @@ class HospitalGame extends FlameGame {
     }
     avgLvl /= math.max(1, built.length);
     double score = math.min(1.0, avgLvl / (8.0 * s.unit + 2)) * 0.4;
-    if (queue.length < Eco.queueMax(s)) score += 0.2;
+    if (pQueue.length < Eco.queueMax(s)) score += 0.2;
     if (s.treasury < Eco.treasuryMax(s) * 0.95) score += 0.2;
     score += math.min(1.0, s.ownedManagers.length / 3) * 0.1;
     score += built.length >= 2 ? 0.1 : 0.05;
@@ -582,7 +582,7 @@ class HospitalGame extends FlameGame {
     for (final p in world.children.whereType<Patient>().toList()) {
       p.removeFromParent();
     }
-    queue.clear();
+    pQueue.clear();
     checkinProgress = 0;
     for (final r in rooms) {
       r.resetRuntime();

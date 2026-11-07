@@ -53,7 +53,7 @@ class RoomComponent extends Component with HasGameReference<HospitalGame> {
   Vector2 get managerSpot => Vector2(x + 0.55, plot.top ? y + 4.2 : y + 4.5);
   Vector2 get stashSpot => plot.top ? Vector2(x + 3.2, y + 4.3) : Vector2(x + 0.9, y + 0.45);
 
-  bool contains(Vector2 gp) =>
+  bool hit(Vector2 gp) =>
       gp.x >= x && gp.x <= x + plotW && gp.y >= y && gp.y <= y + plotD;
 
   int freeSlot() {

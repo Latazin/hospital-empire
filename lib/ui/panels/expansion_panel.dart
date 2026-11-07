@@ -8,9 +8,9 @@ import '../theme.dart';
 
 /// Prestígio: abrir uma nova unidade reinicia salas e dinheiro, mas dá
 /// multiplicador permanente, ouro e libera salas avançadas.
-class ExpansionPanel extends StatelessWidget {
+class ExpansionSheet extends StatelessWidget {
   final GameState s;
-  const ExpansionPanel({super.key, required this.s});
+  const ExpansionSheet({super.key, required this.s});
 
   @override
   Widget build(BuildContext context) {

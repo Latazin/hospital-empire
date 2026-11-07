@@ -224,7 +224,7 @@ class _Hud extends StatelessWidget {
               _NavButton('📈', 'Melhorias', GameColors.green, () => open(UpgradesPanel(s: s, game: game))),
               _NavButton('👔', 'Gerentes', const Color(0xFF3F8CFF), () => open(ManagersPanel(s: s))),
               _NavButton('🎯', 'Missões', GameColors.red, () => open(MissionsPanel(s: s)), badge: s.claimableCount),
-              _NavButton('🏙️', 'Expansão', GameColors.purple, () => open(ExpansionPanel(s: s)), badge: s.canPrestige ? 1 : 0),
+              _NavButton('🏙️', 'Expansão', GameColors.purple, () => open(ExpansionSheet(s: s)), badge: s.canPrestige ? 1 : 0),
               _NavButton('🎉', 'Eventos', const Color(0xFFFF9F1C), () => open(EventsPanel(s: s)),
                   badge: (!s.weekClaimed && s.weeklyProgress >= s.weeklyTarget) ? 1 : 0),
               _NavButton('⚙️', 'Ajustes', GameColors.grey, () => open(SettingsPanel(s: s))),
