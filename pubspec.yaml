@@ -1,0 +1,43 @@
+name: hospital_empire
+description: "Hospital Empire — Idle Tycoon. Construa e gerencie o maior império hospitalar!"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.18.0
+  flame_audio: ^2.10.0
+  shared_preferences: ^2.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/audio/
+    - assets/images/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/icon.png"
+  adaptive_icon_background: "#19B5A5"
+  adaptive_icon_foreground: "assets/images/icon_fg.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#19B5A5"
+  image: assets/images/splash.png
+  android_12:
+    image: assets/images/splash.png
+    color: "#19B5A5"
+  fullscreen: true
