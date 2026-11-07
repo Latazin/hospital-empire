@@ -32,7 +32,8 @@ class GameState extends ChangeNotifier {
   Fx? fx;
 
   double money = 60, rep = 0, treasury = 0, runEarned = 0, xp = 0;
-  int gold = 15, unit = 1, rl = 1, tl = 1, trl = 1, lvl = 1, obj = 0, tut = 0;
+  int gold = 15, unit = 1, rl = 1, tl = 1, trl = 1, lvl = 1, obj = 0, tut = 7, gd = 0;
+  String gk = '';
   Map<String, RoomSave> rooms = {'consultorio': RoomSave(b: true)};
   Map<String, int> mgr = {};
   List<int> cardsOwned = [];
@@ -208,6 +209,59 @@ class GameState extends ChangeNotifier {
     changed(); return v;
   }
 
+  // ---------------- objetivo guiado (sempre um próximo passo claro) ----------------
+  /// Próximo marco de nível de uma sala: nova vaga, renda x2 ou evolução visual.
+  int nextMilestone(int l) {
+    for (var m = l + 1; m <= maxL; m++) {
+      if (slots(m) > slots(m - 1) || m % 25 == 0 || tier(m) > tier(m - 1) || m == 5) return math.min(m, l + 12);
+    }
+    return maxL;
+  }
+  String _pickGoal() {
+    if (hospitalDone) return 'prestige';
+    final n = nextRoom;
+    if (n != null && rep >= repNeed(n) && money >= n.build * 0.25) return 'build:${n.id}';
+    String? best; var bestCost = double.infinity;
+    for (final t in roomTypes) {
+      if (!built(t.id)) continue;
+      final l = lvlOf(t.id); if (l >= maxL) continue;
+      final m = nextMilestone(l);
+      var c = 0.0; for (var k = l; k < m; k++) { c += upCost(t, k); }
+      if (c < bestCost) { bestCost = c; best = 'lvl:${t.id}:$m'; }
+    }
+    if (n != null && rep >= repNeed(n)) return 'build:${n.id}';
+    return best ?? (n != null ? 'build:${n.id}' : 'prestige');
+  }
+  /// (título, detalhe, progresso 0..1, alvo do botão IR, concluído?)
+  (String, String, double, String, bool) get goal {
+    if (gk.isEmpty) gk = _pickGoal();
+    final p = gk.split(':');
+    switch (p[0]) {
+      case 'build':
+        final t = roomTypes.firstWhere((r) => r.id == p[1]);
+        if (built(t.id)) return ('${t.name} construído!', 'Pegue sua recompensa', 1, 'room:${t.id}', true);
+        final why = rep < repNeed(t) ? 'Reputação ${rep.floor()}/${repNeed(t).toInt()}' : 'Custa \$${fmt(t.build)}';
+        return ('Construa: ${t.name}', why, (money / t.build).clamp(0.0, 1.0), 'room:${t.id}', false);
+      case 'lvl':
+        final t = roomTypes.firstWhere((r) => r.id == p[1]), target = int.parse(p[2]), l = lvlOf(t.id);
+        final what = slots(target) > slots(target - 1) ? 'Nova vaga de atendimento' : target % 25 == 0 ? 'Renda x2' : tier(target) > tier(target - 1) ? 'Sala evolui de visual' : 'Mais renda por paciente';
+        if (l >= target) return ('${t.name} nível $target!', 'Pegue sua recompensa', 1, 'room:${t.id}', true);
+        return ('${t.name} → nível $target', what, (l / target).clamp(0.0, 1.0), 'room:${t.id}', false);
+      default:
+        return ('Hospital completo!', 'Abra a próxima unidade', 1, 'expansion', canPrestige);
+    }
+  }
+  int get goalGems => math.min(12, 2 + gd ~/ 3);
+  double get goalCash => math.max(40.0, rate * 25);
+  void claimGoal() {
+    final g = goal; if (!g.$5 || gk == 'prestige') return;
+    gd++; gold += goalGems; final c = goalCash; earn(c);
+    fx?.flyGold(goalGems); fx?.flyMoney(c, coins: 14); fx?.sfx('gift'); fx?.confetti(70); fx?.buzz(30);
+    fx?.banner('OBJETIVO CONCLUÍDO!', '+$goalGems ouro  •  +\$${fmt(c)}');
+    gk = _pickGoal(); changed();
+  }
+  void refreshGoal() { if (gk.isNotEmpty && !goal.$5) { final n = _pickGoal(); if (n.startsWith('build') && !gk.startsWith('build')) gk = n; } }
+
   // ---------------- missões ----------------
   void ensureDaily() {
     final d = DateTime.now(), key = '${d.year}-${d.month}-${d.day}';
@@ -300,7 +354,7 @@ class GameState extends ChangeNotifier {
         'v': 3, 'money': money, 'gold': gold, 'rep': rep, 'treasury': treasury, 'unit': unit, 'runEarned': runEarned,
         'rooms': rooms.map((k, v) => MapEntry(k, v.toJson())), 'rl': rl, 'tl': tl, 'trl': trl, 'mgr': mgr, 'cards': cardsOwned,
         'stats': stats, 'ach': ach, 'obj': obj, 'dk': dk, 'db': db, 'di': di, 'dc': dc, 'wk': wk, 'wb': wb, 'wc': wc,
-        'pu': pu, 'pc': pc, 'gb': gb, 'tut': tut, 'xp': xp, 'lvl': lvl, 'spinAt': spinAt, 'ls': nowMs(),
+        'pu': pu, 'pc': pc, 'gb': gb, 'tut': tut, 'gk': gk, 'gd': gd, 'xp': xp, 'lvl': lvl, 'spinAt': spinAt, 'ls': nowMs(),
         'music': music, 'sound': sound, 'vibration': vibration,
       };
   static double _d(dynamic v, double d) => (v as num?)?.toDouble() ?? d;
@@ -319,7 +373,7 @@ class GameState extends ChangeNotifier {
     di = ((j['di'] as List?) ?? []).map((e) => e as String).where((id) => dailies.any((d) => d.id == id)).toList();
     dc = ((j['dc'] as List?) ?? []).map((e) => (e as num).toInt()).toList();
     wk = _i(j['wk'], -1); wb = _d(j['wb'], 0); wc = j['wc'] == true;
-    pu = _i(j['pu'], 0); pc = _i(j['pc'], 0); gb = _i(j['gb'], 0); tut = _i(j['tut'], 0); xp = _d(j['xp'], 0); lvl = _i(j['lvl'], 1);
+    pu = _i(j['pu'], 0); pc = _i(j['pc'], 0); gb = _i(j['gb'], 0); tut = 7; gk = (j['gk'] as String?) ?? ''; gd = _i(j['gd'], 0); xp = _d(j['xp'], 0); lvl = _i(j['lvl'], 1);
     spinAt = _i(j['spinAt'], 0); ls = _i(j['ls'], 0);
     music = j['music'] != false; sound = j['sound'] != false; vibration = j['vibration'] != false;
   }

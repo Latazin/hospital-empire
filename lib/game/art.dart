@@ -14,8 +14,10 @@ class Spr {
 
 class BgTile {
   final ui.Image img;
-  final double ax, ay;
-  const BgTile(this.img, this.ax, this.ay);
+  final double ax, ay, w, h; // w/h: tamanho no mundo (a textura é menor, para economizar memória)
+  const BgTile(this.img, this.ax, this.ay, this.w, this.h);
+  ui.Rect get src => ui.Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
+  ui.Rect get dst => ui.Rect.fromLTWH(-ax, -ay, w, h);
 }
 
 /// Banco de arte: sprites renderizados em 3D e exportados pelo estúdio.
@@ -43,7 +45,7 @@ class Art {
           tick();
         }),
       for (final b in bgs)
-        Flame.images.load('art/bg/${b['file']}').then((img) { bg.add(BgTile(img, (b['ax'] as num).toDouble(), (b['ay'] as num).toDouble())); tick(); }),
+        Flame.images.load('art/bg/${b['file']}').then((img) { bg.add(BgTile(img, (b['ax'] as num).toDouble(), (b['ay'] as num).toDouble(), (b['w'] as num).toDouble(), (b['h'] as num).toDouble())); tick(); }),
       for (final n in iconNames)
         Flame.images.load('art/icons/$n.png').then((img) { icons[n] = img; tick(); }),
     ]);

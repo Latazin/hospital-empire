@@ -9,6 +9,14 @@ void main() {
   test('formatação', () { expect(fmt(999), '999'); expect(fmt(1500), '1.50K'); });
   test('começa com o Consultório', () { final s = GameState(); expect(s.built('consultorio'), isTrue); expect(s.built('laboratorio'), isFalse); });
   test('melhoria gasta dinheiro', () { final s = GameState()..money = 1000; expect(s.upgradeRoom('consultorio', 1), isTrue); expect(s.lvlOf('consultorio'), 2); expect(s.money, lessThan(1000)); });
+  test('objetivo guiado sempre aponta um próximo passo e paga recompensa', () {
+    final s = GameState()..money = 100;
+    final g = s.goal; expect(g.$5, isFalse); expect(g.$4, startsWith('room:'));
+    s.money = 1e9; s.rep = 1e6;
+    if (s.gk.startsWith('build')) { s.buildRoom(s.gk.split(':')[1]); } else { while (!s.goal.$5) { s.upgradeRoom(s.gk.split(':')[1], 1); } }
+    expect(s.goal.$5, isTrue);
+    final g0 = s.gold; s.claimGoal(); expect(s.gold, greaterThan(g0)); expect(s.goal.$5, isFalse);
+  });
   test('hospital cresce uma sala por vez', () {
     final s = GameState()..money = 1e12..rep = 1e6;
     expect(s.nextRoom?.id, 'laboratorio');

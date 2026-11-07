@@ -20,6 +20,7 @@ class SceneRenderer extends Component {
   SceneRenderer(this.w, this.s);
 
   final Paint _p = Paint()..filterQuality = FilterQuality.medium..isAntiAlias = true;
+  final Paint _bgP = Paint()..filterQuality = FilterQuality.low;
   final Paint _shadow = Paint()..color = const Color(0x33141A33);
   static final Map<String, _OT> _tc = {};
 
@@ -150,8 +151,8 @@ class SceneRenderer extends Component {
     final sx = w.shake > 0 ? rr(-1, 1) * w.shake * 22 : 0.0, sy = w.shake > 0 ? rr(-1, 1) * w.shake * 22 : 0.0;
     c.save(); c.translate(sx, sy);
     for (final b in Art.bg) {
-      final dst = Rect.fromLTWH(-b.ax, -b.ay, b.img.width.toDouble(), b.img.height.toDouble());
-      if (dst.overlaps(view)) c.drawImageRect(b.img, Rect.fromLTWH(0, 0, dst.width, dst.height), dst, _p..color = Colors.white);
+      final dst = b.dst;
+      if (dst.overlaps(view)) c.drawImageRect(b.img, b.src, dst, _bgP);
     }
     // pisos e paredes das áreas
     spr(c, 'rec_${GameState.tier(s.rl)}', 0, 0);
@@ -213,7 +214,7 @@ class SceneRenderer extends Component {
     for (final rm in w.rooms) {
       if (rm.glow <= 0.01) continue;
       final o = iso(rm.x + 2, rm.y + 2.5, 20);
-      c.drawCircle(o, 260, Paint()..blendMode = BlendMode.plus..shader = ui.Gradient.radial(o, 260, [Color.fromRGBO(255, 226, 122, 0.55 * rm.glow), Color.fromRGBO(255, 200, 80, 0.18 * rm.glow), const Color(0x00FFC850)], [0, 0.45, 1]));
+      c.drawCircle(o, 260, Paint()..shader = ui.Gradient.radial(o, 260, [Color.fromRGBO(255, 226, 122, 0.55 * rm.glow), Color.fromRGBO(255, 200, 80, 0.18 * rm.glow), const Color(0x00FFC850)], [0, 0.45, 1]));
     }
     _clouds(c);
     _night(c);
@@ -232,10 +233,10 @@ class SceneRenderer extends Component {
   }
   void _night(Canvas c) {
     if (night < 0.02 && dusk < 0.02) return;
-    final tint = night >= dusk ? Color.lerp(Colors.white, const Color(0xFF4A56A8), night * 0.7)! : Color.lerp(Colors.white, const Color(0xFFFFB089), dusk * 0.45)!;
-    c.drawRect(view.inflate(400), Paint()..color = tint..blendMode = BlendMode.multiply);
+    final tint = night >= dusk ? const Color(0xFF1C2466).withValues(alpha: night * 0.42) : const Color(0xFFFF8A50).withValues(alpha: dusk * 0.16);
+    c.drawRect(view.inflate(400), Paint()..color = tint);
     if (night < 0.05) return;
-    final glow = Paint()..blendMode = BlendMode.plus;
+    final glow = Paint();
     void light(double gx, double gy, double h, double r, Color col, double a) {
       final o = iso(gx, gy, h);
       glow.shader = ui.Gradient.radial(o, r, [col.withValues(alpha: a), col.withValues(alpha: a * 0.35), col.withValues(alpha: 0)], [0, 0.35, 1]);
@@ -254,15 +255,12 @@ class SceneRenderer extends Component {
   void _labels(Canvas c) {
     final next = s.nextRoom;
     var p = iso(2.5, 3.6, 84);
-    plate(c, 'Recepção  Nv ${s.rl}', p, 22, const Color(0xFFE84A7F));
-    final q = w.queue.length, mx = s.qmax;
-    txt(c, 'Fila $q/$mx', p + const Offset(0, 36), 20, q >= mx ? const Color(0xFFFF9E9E) : Colors.white);
+    plate(c, 'Recepção  Nv ${s.rl}', p, 20, const Color(0xFFE84A7F));
     if (w.checkin > 0) bar(c, iso(desk[0], desk[1], 54), 72, 10, w.checkin, const Color(0xFFFF80AB));
     p = iso(2.5, 11.5, 80);
     final tr = s.treasury / s.treMax;
-    plate(c, 'Cofre  Nv ${s.trl}', p, 22, const Color(0xFF8D6E63));
-    bar(c, p + const Offset(0, 38), 150, 16, tr, tr >= 0.999 ? const Color(0xFFFF5A5F) : const Color(0xFFFFC531));
-    txt(c, '\$${fmt(s.treasury)}', p + const Offset(0, 39), 17, Colors.white);
+    plate(c, 'Cofre  Nv ${s.trl}', p, 20, const Color(0xFF8D6E63));
+    bar(c, p + const Offset(0, 34), 130, 12, tr, tr >= 0.999 ? const Color(0xFFFF5A5F) : const Color(0xFFFFC531));
     for (final rm in w.rooms) {
       final cc = iso(rm.x + 2, rm.y + 2.5, rm.top ? 92 : 80), t = rm.t;
       if (!s.built(rm.t.id)) {
@@ -273,21 +271,29 @@ class SceneRenderer extends Component {
           final can = s.money >= t.build, sc = can ? 1 + 0.07 * math.sin(w.t * 6) : 1.0;
           c.save(); c.translate(cc.dx, cc.dy); c.scale(sc); plate(c, 'CONSTRUIR ${t.name}', Offset.zero, 22, can ? const Color(0xFF3FD46B) : const Color(0xFF8D99AE)); c.restore();
           txt(c, '\$${fmt(t.build)}', cc + const Offset(0, 38), 24, can ? const Color(0xFFC8FFB0) : Colors.white);
-          if (can) _bigArrow(c, cc + Offset(0, -70 - (math.sin(w.t * 6).abs()) * 22));
         }
         continue;
       }
       if (rm.buildAnim > 0) { bar(c, cc + const Offset(0, 20), 140, 14, 1 - rm.buildAnim / 2.8, const Color(0xFF4CFF7A)); continue; }
       final l = s.lvlOf(t.id), tier = GameState.tier(l);
-      final pw = plate(c, '${t.name}  Nv $l', cc, 22, tier >= 3 ? const Color(0xFFD99000) : t.accent);
+      final pw = plate(c, '${t.name}  Nv $l', cc, 20, tier >= 3 ? const Color(0xFFD99000) : t.accent);
       for (var k = 0; k < tier; k++) { _star(c, cc + Offset(-(tier - 1) * 13.0 + k * 26, -34), 11); }
       if (l < GameState.maxL && s.money >= s.upCost(t, l)) upBadge(c, cc + Offset(pw / 2 + 24, math.sin(w.t * 7) * 5));
-      if (rm.stash > 0.5) { final pl = rm.pile(); plate(c, '\$${fmt(rm.stash)}', iso(pl[0], pl[1], 30), 17, const Color(0xFFFFE27A), fg: const Color(0xFF6D4C00)); }
     }
     for (final g in w.gifts) { if (g.z <= 0.5) plate(c, 'TOQUE!', iso(g.gx, g.gy, 44 + math.sin(w.t * 5) * 3), 18, const Color(0xFFFFC531), fg: Colors.white); }
     for (final pp in w.people) { _personOver(c, pp); }
+    // seta do objetivo atual: mostra onde tocar
+    final g = s.goal;
+    if (!g.$5 && g.$4.startsWith('room:')) {
+      final rm = w.rooms.firstWhere((r) => r.t.id == g.$4.substring(5));
+      final top = iso(rm.x + 2, rm.y + 2.5, rm.top ? 92 : 80);
+      _bigArrow(c, top + Offset(0, -78 - (math.sin(w.t * 5).abs()) * 26));
+    }
   }
-  void _bigArrow(Canvas c, Offset o) {
+  void _bigArrow(Canvas c, Offset at, [double k = 1.9]) {
+    c.save(); c.translate(at.dx, at.dy); c.scale(k); _arrowAt(c, Offset.zero); c.restore();
+  }
+  void _arrowAt(Canvas c, Offset o) {
     final p = Path()..moveTo(o.dx, o.dy + 30)..lineTo(o.dx + 28, o.dy)..lineTo(o.dx + 12, o.dy)..lineTo(o.dx + 12, o.dy - 26)..lineTo(o.dx - 12, o.dy - 26)..lineTo(o.dx - 12, o.dy)..lineTo(o.dx - 28, o.dy)..close();
     c.drawPath(p.shift(const Offset(0, 5)), Paint()..color = const Color(0x55141A33));
     c.drawPath(p, Paint()..color = const Color(0xFF1E2A47)..style = PaintingStyle.stroke..strokeWidth = 7..strokeJoin = StrokeJoin.round);
@@ -361,7 +367,7 @@ class SceneRenderer extends Component {
         case 'beam':
           final k = q.life / q.max, al = math.sin(k * math.pi), wd = q.s * (0.6 + 0.4 * al);
           final r = Rect.fromLTWH(q.x - wd / 2, q.y - 900, wd, 900);
-          c.drawRect(r, Paint()..blendMode = BlendMode.plus..shader = ui.Gradient.linear(Offset(r.left, 0), Offset(r.right, 0), [q.c.withValues(alpha: 0), q.c.withValues(alpha: 0.5 * al), q.c.withValues(alpha: 0)]));
+          c.drawRect(r, Paint()..shader = ui.Gradient.linear(Offset(r.left, 0), Offset(r.right, 0), [q.c.withValues(alpha: 0), q.c.withValues(alpha: 0.5 * al), q.c.withValues(alpha: 0)]));
           break;
         case 'bolt':
           final o = Offset(q.x, q.y);
