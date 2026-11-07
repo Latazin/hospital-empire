@@ -8,16 +8,26 @@ class Sfx {
   static final Map<String, int> _last = {};
   static const names = ['click', 'coin', 'cash', 'build', 'up', 'alert', 'level', 'nope', 'gift', 'pop', 'boost', 'whoosh', 'tick'];
 
+  static final Map<String, AudioPool> _pools = {};
   static Future<void> init() async {
-    try { await FlameAudio.audioCache.loadAll([...names.map((n) => '$n.wav'), 'music.wav']); FlameAudio.bgm.initialize(); _ready = true; } catch (_) { _ready = false; }
+    try {
+      await FlameAudio.audioCache.loadAll([...names.map((n) => '$n.wav'), 'music.wav']);
+      FlameAudio.bgm.initialize();
+      // pools reaproveitam os players (criar um player por som travava o jogo)
+      for (final n in names) {
+        try { _pools[n] = await FlameAudio.createPool('$n.wav', minPlayers: 1, maxPlayers: n == 'coin' || n == 'up' || n == 'click' ? 3 : 2); } catch (_) {}
+      }
+      _ready = true;
+    } catch (_) { _ready = false; }
   }
 
   static void play(String name, {double volume = 0.6, double rate = 1}) {
     if (!sound || !_ready) return;
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - (_last[name] ?? 0) < 60) return;
+    if (now - (_last[name] ?? 0) < 90) return;
     _last[name] = now;
-    FlameAudio.play('$name.wav', volume: volume).then((p) { if (rate != 1) p.setPlaybackRate(rate.clamp(0.5, 2.0)); }).catchError((_) => null);
+    final pool = _pools[name]; if (pool == null) return;
+    pool.start(volume: (volume * (0.85 + 0.15 * rate.clamp(0.5, 2.0))).clamp(0.0, 1.0)).catchError((_) => () async {});
   }
 
   static void startMusic() { if (!music || !_ready) return; try { FlameAudio.bgm.play('music.wav', volume: 0.28); } catch (_) {} }

@@ -487,7 +487,7 @@ class HospitalWorld {
       p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
       if (p.k == 'conf') { p.vx *= 0.98; p.vy = math.min(p.vy, 120); }
     }
-    if (parts.length > 420) parts.removeRange(0, parts.length - 420);
+    if (parts.length > 260) parts.removeRange(0, parts.length - 260);
     for (final f in [...floats]) { f.t += dt; if (f.t > 1.25) floats.remove(f); }
   }
   void levelFx(String id, int a, int b) {

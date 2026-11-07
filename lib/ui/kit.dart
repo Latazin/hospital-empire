@@ -25,13 +25,12 @@ class K {
   static const grey = Color(0xFFA9B2C6);
 }
 
-/// Contorno suave (12 direções) + sombra projetada, como nos jogos casuais.
+/// Contorno (8 direções, sem desfoque para não pesar) + sombra projetada, como nos jogos casuais.
 List<Shadow> outlineShadows(double size, {Color color = K.navy}) {
   final r = (size * 0.075).clamp(1.4, 4.0).toDouble();
   return [
-    for (var i = 0; i < 12; i++) Shadow(color: color, offset: Offset(r * math.cos(i * math.pi / 6), r * math.sin(i * math.pi / 6))),
-    Shadow(color: color, offset: Offset(0, r * 1.7)),
-    Shadow(color: const Color(0x55000000), offset: Offset(0, r * 2.6), blurRadius: r),
+    for (var i = 0; i < 8; i++) Shadow(color: color, offset: Offset(r * math.cos(i * math.pi / 4), r * math.sin(i * math.pi / 4))),
+    Shadow(color: color, offset: Offset(0, r * 1.8)),
   ];
 }
 TextStyle display(double size, {Color color = Colors.white, bool outline = true}) => TextStyle(

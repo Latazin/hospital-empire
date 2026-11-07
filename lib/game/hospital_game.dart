@@ -56,7 +56,7 @@ class HospitalGame extends FlameGame {
     final after = screenToWorld(focal);
     camera.viewfinder.position = camera.viewfinder.position + (before - after); _camTarget = null; _clamp();
   }
-  void _clamp() { final p = camera.viewfinder.position; camera.viewfinder.position = Vector2(p.x.clamp(-1900.0, 2300.0), p.y.clamp(-500.0, 1700.0)); }
+  void _clamp() { final p = camera.viewfinder.position; camera.viewfinder.position = Vector2(p.x.clamp(-2200.0, 2600.0), p.y.clamp(-800.0, 2000.0)); }
   void focus(double gx, double gy, {double offY = 0}) { final o = iso(gx, gy); _camTarget = Vector2(o.dx, o.dy + offY / zoom); }
   void focusArea(String target, {bool sheet = false}) {
     final off = sheet ? size.y * 0.2 : 0.0;

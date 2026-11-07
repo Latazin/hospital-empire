@@ -20,7 +20,7 @@ class SceneRenderer extends Component {
   SceneRenderer(this.w, this.s);
 
   final Paint _p = Paint()..filterQuality = FilterQuality.medium..isAntiAlias = true;
-  final Paint _shadow = Paint()..color = const Color(0x40141A33)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+  final Paint _shadow = Paint()..color = const Color(0x33141A33);
   static final Map<String, _OT> _tc = {};
 
   // ---------------- dia/noite ----------------
@@ -242,11 +242,11 @@ class SceneRenderer extends Component {
       c.drawCircle(o, r, glow);
     }
     const warm = Color(0xFFFFBE64), gold = Color(0xFFFFD23C);
-    for (final rm in w.rooms) { if (s.built(rm.t.id)) light(rm.x + 2, rm.y + 2.5, 0, 300, GameState.tier(s.lvlOf(rm.t.id)) >= 3 ? gold : warm, 0.45 * night); }
+    for (final rm in w.rooms) { if (s.built(rm.t.id) && view.inflate(300).contains(iso(rm.x + 2, rm.y + 2.5))) light(rm.x + 2, rm.y + 2.5, 0, 300, GameState.tier(s.lvlOf(rm.t.id)) >= 3 ? gold : warm, 0.45 * night); }
     light(2.5, 4.5, 0, 320, warm, 0.45 * night); light(2.5, 11.5, 0, 280, gold, 0.35 * night);
     light(11, 1.9, 92, 420, gold, 0.4 * night); light(1.9, 1.9, 92, 170, const Color(0xFFFF4040), 0.45 * night);
     for (final l in const [[-7.75, -8.0], [-7.75, -2.0], [-7.75, 4.0], [-7.75, 10.6], [-7.75, 17.0], [3.0, 15.65], [10.0, 15.65], [17.0, 15.65], [21.75, 6.0], [21.75, 12.0], [-1.0, 18.9], [6.0, 18.9], [13.0, 18.9], [20.0, 18.9], [27.0, 18.9]]) {
-      light(l[0], l[1], 63, 90, warm, 0.9 * night); light(l[0], l[1], 0, 200, warm, 0.35 * night);
+      if (view.inflate(200).contains(iso(l[0], l[1]))) light(l[0], l[1], 20, 150, warm, 0.6 * night);
     }
     for (final car in w.cars) { if (car.kind == 'amb') light(car.gx, car.gy, 38, 160, (w.t * 7).floor() % 2 == 0 ? const Color(0xFFFF3040) : const Color(0xFF3C78FF), 0.6); }
   }
@@ -375,7 +375,7 @@ class SceneRenderer extends Component {
       final k = f.t / 1.25, sc = k < 0.1 ? 0.3 + k / 0.1 * 1.05 : k < 0.2 ? 1.35 - (k - 0.1) / 0.1 * 0.3 : 1.05 - math.min(0.1, (k - 0.2) * 0.2);
       final tp = _text(f.s, f.size, f.color, stroke: const Color(0xFF1E2A47));
       c.save(); c.translate(f.x, f.y - k * 80); c.scale(sc);
-      if (k > 0.7) { c.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, (1 - k) / 0.3)); tp.paint(c, Offset(-tp.width / 2, -tp.height / 2)); c.restore(); }
+      if (k > 0.7) { c.saveLayer(Rect.fromLTWH(-tp.width / 2 - 12, -tp.height / 2 - 12, tp.width + 24, tp.height + 24), Paint()..color = Color.fromRGBO(0, 0, 0, (1 - k) / 0.3)); tp.paint(c, Offset(-tp.width / 2, -tp.height / 2)); c.restore(); }
       else { tp.paint(c, Offset(-tp.width / 2, -tp.height / 2)); }
       c.restore();
     }

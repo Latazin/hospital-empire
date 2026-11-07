@@ -148,9 +148,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver imp
             onScaleUpdate: (d) {
               if (d.pointerCount > 1) { game.zoomAt(d.localFocalPoint, _startZoom * d.scale / game.zoom); }
               final delta = d.localFocalPoint - _lastFocal; game.panBy(delta); _lastFocal = d.localFocalPoint;
-              if (d.pointerCount == 1) game.vel.setValues(-delta.dx * 60, -delta.dy * 60);
+              if (d.pointerCount == 1) game.vel.setValues(delta.dx * 60, delta.dy * 60);
             },
-            onScaleEnd: (d) { game.dragging = false; game.vel.setValues(-d.velocity.pixelsPerSecond.dx, -d.velocity.pixelsPerSecond.dy); },
+            onScaleEnd: (d) { game.dragging = false; final v = d.velocity.pixelsPerSecond; game.vel.setValues(v.dx.clamp(-2500.0, 2500.0), v.dy.clamp(-2500.0, 2500.0)); },
             onTapUp: (d) => game.tapAt(d.localPosition, openRoom: panel != null && panel!.startsWith('room:') ? panel!.substring(5) : null),
             child: GameWidget(game: game),
           ),
