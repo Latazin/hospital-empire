@@ -31,8 +31,8 @@ class HospitalGame extends FlameGame {
     camera.viewfinder.anchor = Anchor.center;
     // começa perto (hospital pequeno) e abre o enquadramento conforme cresce
     final n = s.builtCount;
-    camera.viewfinder.zoom = (size.x / (n <= 2 ? 900 : n <= 4 ? 1000 : 1150)).clamp(0.3, 0.7);
-    final o = n <= 2 ? iso(7.2, 6.2) : iso(6.5, 7.2);
+    camera.viewfinder.zoom = (size.x / (n <= 2 ? 980 : n <= 4 ? 1060 : 1150)).clamp(0.3, 0.7);
+    final o = n <= 2 ? iso(5.6, 7.9) : iso(6.5, 7.2);
     camera.viewfinder.position = Vector2(o.dx, o.dy);
     w.onFocus = (g) => focus(g[0], g[1]);
     for (var i = 0; i < 3; i++) { Future.delayed(Duration(milliseconds: 700 * i), () => w.spawnPatient()); }
