@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/audio.dart';
+import 'core/data.dart';
 import 'core/save.dart';
 import 'core/state.dart';
 import 'game/art.dart';
@@ -50,14 +51,23 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
     Sfx.music = st.music; Sfx.sound = st.sound; Sfx.vibration = st.vibration;
     await Art.load((k) { if (mounted) setState(() => progress = k); });
     await Sfx.init();
+    final q = Uri.base.queryParameters;
+    if (q['demo'] == '1') {
+      st..money = 5e9..rep = 3000..unit = 3..gold = 500..tut = 7..rl = 25..tl = 30..trl = 20;
+      const lv = [12, 27, 55, 8, 30, 52, 3, 18];
+      for (var i = 0; i < roomTypes.length; i++) { st.rooms[roomTypes[i].id] = RoomSave(b: true, l: lv[i]); }
+      st.mgr = {'m_paulo': 3, 'm_lia': 2};
+    }
+    if (q['tut'] == '7') st.tut = 7;
     if (mounted) setState(() => s = st);
+    if (q['auto'] == '1') _play(panel: q['panel']);
   }
 
-  void _play() {
+  void _play({String? panel}) {
     Sfx.play('level'); Sfx.startMusic();
     Navigator.of(context).pushReplacement(PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (_, __, ___) => GameScreen(s: s!, offlineSecs: offline),
+      pageBuilder: (_, __, ___) => GameScreen(s: s!, offlineSecs: offline, startPanel: panel),
       transitionsBuilder: (_, an, __, c) => FadeTransition(opacity: an, child: c),
     ));
   }

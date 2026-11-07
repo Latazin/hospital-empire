@@ -1,0 +1,31 @@
+name: Preview (capturas de tela)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar
+        run: |
+          flutter create --org com.hospitalempire --project-name hospital_empire --platforms web . >/dev/null
+          rm -f test/widget_test.dart
+          flutter pub get
+      - name: Build web
+        run: flutter build web --release --no-tree-shake-icons
+      - name: Capturas
+        run: |
+          cd build/web && (python3 -m http.server 8080 >/dev/null 2>&1 &) && cd ../..
+          npm i --no-save playwright@1.49.1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          node tool/shots.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: previews
+          path: shots/

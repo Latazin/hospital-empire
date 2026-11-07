@@ -19,7 +19,8 @@ import 'panels.dart';
 class GameScreen extends StatefulWidget {
   final GameState s;
   final double offlineSecs;
-  const GameScreen({super.key, required this.s, this.offlineSecs = 0});
+  final String? startPanel;
+  const GameScreen({super.key, required this.s, this.offlineSecs = 0, this.startPanel});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -54,6 +55,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver imp
     s.ensureDaily(); s.ensureWeekly();
     WidgetsBinding.instance.addObserver(this);
     _hudTimer = Timer.periodic(const Duration(milliseconds: 200), (_) => _hudTick());
+    if (widget.startPanel != null) Future.delayed(const Duration(seconds: 3), () { if (mounted) openPanel(widget.startPanel!); });
     if (widget.offlineSecs > 60) WidgetsBinding.instance.addPostFrameCallback((_) => _offerOffline(widget.offlineSecs));
   }
 
