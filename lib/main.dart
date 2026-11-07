@@ -99,11 +99,14 @@ class _TitleScreenState extends State<TitleScreen> with TickerProviderStateMixin
                 Transform.translate(offset: Offset(0, -a.value * 10), child: Transform.scale(scale: el(0, 0.55), child: Art.icons['icon_cross'] != null ? const Ico('cross', size: 120) : const SizedBox(height: 120))),
                 const SizedBox(height: 4),
                 Transform.scale(scale: el(0.12, 0.65), child: Text('HOSPITAL', style: display(60))),
-                Transform.scale(scale: el(0.22, 0.75), child: ShaderMask(
-                  shaderCallback: (r) => LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: const [Color(0xFFFFF4B0), Color(0xFFFFC531), Color(0xFFFF8F00)]).createShader(r),
-                  blendMode: BlendMode.srcATop,
-                  child: Text('EMPIRE', style: display(78)),
-                )),
+                Transform.scale(scale: el(0.22, 0.75), child: Stack(children: [
+                  Text('EMPIRE', style: display(78)),
+                  ShaderMask(
+                    shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFFFF4B0), Color(0xFFFFC531), Color(0xFFFF8F00)]).createShader(r),
+                    blendMode: BlendMode.srcIn,
+                    child: Text('EMPIRE', style: display(78, outline: false)),
+                  ),
+                ])),
                 const SizedBox(height: 8),
                 Transform.scale(scale: el(0.35, 0.85), child: Transform.rotate(angle: -0.04 + math.sin(t * 2) * 0.015, child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
