@@ -86,7 +86,7 @@ class RoomRt {
   final RoomType t;
   final double x, y;
   final bool top;
-  double stash = 0, buildAnim = 0, tapCD = 0;
+  double stash = 0, buildAnim = 0, tapCD = 0, pop = 0, glow = 0;
   bool claimed = false;
   bool? lastBuilt;
   final occ = List<Patient?>.filled(4, null), prog = List<double>.filled(4, 0), serv = List<bool>.filled(4, false);
@@ -160,6 +160,10 @@ class HospitalWorld {
       parts.add(Particle(k, p.dx, p.dy, math.cos(a) * v, math.sin(a) * v * 0.6 - speed * 0.5, k == 'conf' ? 240 : 520, k == 'conf' ? rr(1.4, 2.4) : rr(0.6, 1.1), k == 'coin' ? rr(8, 12) : rr(6, 13), pick(confColors), rnd.nextDouble() * 6, rr(-8, 8)));
     }
   }
+  /// Onda de choque (anel que se expande no chão).
+  void ring(Offset p, Color c, [int n = 1]) { for (var i = 0; i < n; i++) { parts.add(Particle('ring', p.dx, p.dy, 0, 0, 0, 0.55 + i * 0.18, 30 + i * 10, c)); } }
+  /// Raio de luz subindo (marcos de nível).
+  void beam(Offset p, Color c) => parts.add(Particle('beam', p.dx, p.dy, 0, 0, 0, 1.1, 120, c));
   void floatTxt(double gx, double gy, String text, Color c, [double size = 26, double h = 46]) { final p = iso(gx, gy, h); floats.add(FloatText(p.dx, p.dy, text, c, size)); }
 
   // ---------------- atualização ----------------
@@ -189,12 +193,15 @@ class HospitalWorld {
     if (rm.lastBuilt == false && b) { rm.buildAnim = 2.8; onFocus?.call(rm.center()); fx.sfx('build'); }
     rm.lastBuilt = b;
     if (rm.tapCD > 0) rm.tapCD -= dt;
+    if (rm.pop > 0) rm.pop = math.max(0, rm.pop - dt * 1.8);
+    if (rm.glow > 0) rm.glow = math.max(0, rm.glow - dt * 0.9);
     if (rm.buildAnim > 0) {
       rm.buildAnim -= dt;
       if (rnd.nextDouble() < dt * 10) { final p = iso(rm.x + rr(0.3, 3.7), rm.y + rr(0.3, 4.7), rr(0, 30)); parts.add(Particle('smoke', p.dx, p.dy, rr(-20, 20), -36, 0, 1.2, rr(6, 12), const Color(0xFFEBE4D7))); }
       if (rm.buildAnim <= 0) {
-        final c = iso(rm.x + 2, rm.y + 2.5, 30); burst(c, 60, ['conf', 'spark'], 440); shake = 0.5; fx.sfx('level'); fx.buzz(30);
-        fx.banner('SALA INAUGURADA!', rm.t.name);
+        final c = iso(rm.x + 2, rm.y + 2.5, 30); burst(c, 90, ['conf', 'spark', 'coin'], 520); ring(c, const Color(0xFFFFE27A), 3); shake = 0.6; fx.sfx('level'); fx.buzz(40);
+        rm.pop = 1; rm.glow = 1; fx.confetti(90);
+        fx.banner('NOVA SALA!', '${rm.t.name} • ${s.builtCount}/${roomTypes.length} do hospital');
       }
     }
     final op = b && rm.buildAnim <= 0, l = s.lvlOf(rm.t.id), want = op ? GameState.slots(l) : 0;
@@ -485,17 +492,23 @@ class HospitalWorld {
   }
   void levelFx(String id, int a, int b) {
     final rm = rooms.firstWhere((r) => r.t.id == id), combo = s.bumpCombo(), c = iso(rm.x + 2, rm.y + 2.5, 20);
-    for (var i = 0; i < 8; i++) { parts.add(Particle('arrow', c.dx + rr(-100, 100), c.dy + rr(-20, 60), 0, -120, 0, rr(0.6, 1.1), 14, const Color(0xFF3FD46B))); }
-    burst(c, 14, ['spark'], 280);
-    floatTxt(rm.x + 2, rm.y + 2.5, 'NÍVEL $b${combo > 1 ? '  x${combo + 1}' : ''}', const Color(0xFF7CFFB2), 30, 60);
+    rm.pop = 1; rm.glow = math.min(1.0, rm.glow + 0.5);
+    final hot = Color.lerp(const Color(0xFF7CFFB2), const Color(0xFFFFE27A), math.min(1.0, combo / 10))!;
+    for (var i = 0; i < 6 + math.min(combo, 10); i++) { parts.add(Particle('arrow', c.dx + rr(-110, 110), c.dy + rr(-20, 70), 0, rr(-170, -110), 0, rr(0.6, 1.1), 14, const Color(0xFF3FD46B))); }
+    burst(c, 16 + math.min(combo * 2, 30), ['spark', 'coin'], 300 + math.min(combo, 10) * 18.0);
+    ring(c, hot);
+    floatTxt(rm.x + 2, rm.y + 2.5, 'NÍVEL $b', hot, 34 + math.min(combo, 10) * 1.6, 70);
+    if (combo >= 2) floatTxt(rm.x + 2, rm.y + 1.2, 'COMBO x${combo + 1}', Color.lerp(const Color(0xFFFFE27A), const Color(0xFFFF6FB5), math.min(1.0, combo / 12))!, 26 + math.min(combo, 12) * 1.5, 120);
+    if (combo > 0 && (combo + 1) % 10 == 0) { s.gold += 1; fx.flyGold(1); fx.toast('Combo x${combo + 1}! +1 ouro'); }
     final lines = <String>[];
     if (GameState.slots(b) > GameState.slots(a)) lines.add('Nova vaga de atendimento!');
     if (b ~/ 25 > a ~/ 25) lines.add('Renda x2!');
     if (GameState.tier(b) > GameState.tier(a)) lines.add('Sala evoluiu: ${GameState.tierNames[GameState.tier(b)]}');
     if (lines.isNotEmpty) {
       fx.banner(lines.first.contains('x2') ? 'RENDA x2!' : lines.first.contains('vaga') ? 'NOVA VAGA!' : 'EVOLUIU!', '${rm.t.name} • ${lines.join(' • ')}');
-      burst(c, 50, ['conf', 'spark'], 440); shake = 0.4; fx.sfx('level'); fx.buzz(30);
-    } else { fx.sfx('up', pitch: math.pow(1.06, math.min(combo, 14)).toDouble()); fx.buzz(8); }
+      burst(c, 70, ['conf', 'spark', 'coin'], 480); ring(c, const Color(0xFFFFE27A), 3); beam(iso(rm.x + 2, rm.y + 2.5), const Color(0xFFFFE27A));
+      shake = 0.45; rm.glow = 1; fx.sfx('level'); fx.buzz(35); fx.confetti(50);
+    } else { fx.sfx('up', pitch: math.pow(1.06, math.min(combo, 14)).toDouble()); fx.buzz(8); if (combo >= 4) shake = math.max(shake, 0.08); }
   }
   void resetWorld() {
     for (final p in people.whereType<Patient>().toList()) { people.remove(p); }

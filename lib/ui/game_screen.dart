@@ -194,6 +194,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver imp
         const SizedBox(height: 6),
         Wrap(spacing: 5, runSpacing: 4, alignment: WrapAlignment.center, children: [
           _Chip(unitName(s.unit), K.navy),
+          if (s.hospitalDone) _Chip('Hospital completo! Toque em Expansão', K.purple) else _Chip('Salas ${s.builtCount}/${roomTypes.length}', K.greenD),
           if (s.unit > 1) _Chip('x${s.prestigeMult.toStringAsFixed(2)}', K.teal),
           if (s.plantaoOn) _Chip('Plantão x3 • ${((s.pu - nowMs()) / 1000).ceil()}s', const Color(0xFFFF6D00)),
           if (s.boostOn) _Chip('Renda x2 • ${fmtTime((s.gb - nowMs()) / 1000)}', K.purple),
@@ -291,7 +292,7 @@ class _ResState extends State<_Res> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: a,
-        builder: (_, child) => Transform.scale(scale: 1 + math.sin(a.value * math.pi) * 0.12, child: child),
+        builder: (_, child) => Transform.scale(scale: 1 + math.sin(a.value * math.pi) * 0.22, child: child),
         child: SizedBox(
           height: 46,
           child: Stack(clipBehavior: Clip.none, children: [

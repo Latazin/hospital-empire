@@ -29,8 +29,10 @@ class HospitalGame extends FlameGame {
   Future<void> onLoad() async {
     world.add(scene);
     camera.viewfinder.anchor = Anchor.center;
-    camera.viewfinder.zoom = (size.x / 1150).clamp(0.3, 0.6);
-    final o = iso(6.5, 7.2);
+    // começa perto (hospital pequeno) e abre o enquadramento conforme cresce
+    final n = s.builtCount;
+    camera.viewfinder.zoom = (size.x / (n <= 2 ? 760 : n <= 4 ? 950 : 1150)).clamp(0.3, 0.75);
+    final o = n <= 2 ? iso(4.6, 6.4) : iso(6.5, 7.2);
     camera.viewfinder.position = Vector2(o.dx, o.dy);
     w.onFocus = (g) => focus(g[0], g[1]);
     for (var i = 0; i < 3; i++) { Future.delayed(Duration(milliseconds: 700 * i), () => w.spawnPatient()); }
@@ -73,6 +75,7 @@ class HospitalGame extends FlameGame {
       if (rm.stash > 0.5) { final pl = rm.pile(); if ((iso(pl[0], pl[1], 12) - wo).distance < 46) { w.grabStash(rm); return; } }
     }
     for (final rm in w.rooms) {
+      if (!s.built(rm.t.id) && rm.t != s.nextRoom) continue;
       final plate = iso(rm.x + 2, rm.y + 2.5, rm.top ? 92 : 80);
       if (rm.contains(gp[0], gp[1]) || ((plate.dx - wo.dx).abs() < 140 && (plate.dy - wo.dy).abs() < 30)) {
         if (openRoom == rm.t.id) { w.tapRoomBoost(rm, wo); } else { onTap?.call('room:${rm.t.id}'); w.tapRoomBoost(rm, wo); }

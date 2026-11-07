@@ -31,12 +31,14 @@ flutter:
     - assets/images/art/chars/
     - assets/images/art/icons/
   fonts:
-    - family: Lilita
+    - family: Fredoka
       fonts:
-        - asset: assets/fonts/LilitaOne-Regular.ttf
-    - family: Nunito
-      fonts:
-        - asset: assets/fonts/Nunito.ttf
+        - asset: assets/fonts/Fredoka-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Fredoka-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Fredoka-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

@@ -10,14 +10,15 @@ class RoomType {
 }
 
 const roomTypes = <RoomType>[
+  // Salas liberadas em sequência: cada uma exige a anterior construída + reputação.
   RoomType('consultorio', 'Consultório', 10, 4, 0, 20, 0, 1, 0, Color(0xFF2E9BD6), 'chair'),
-  RoomType('laboratorio', 'Laboratório', 40, 6, 500, 120, 40, 1, 1, Color(0xFF9B59D0), 'lab'),
-  RoomType('farmacia', 'Farmácia', 160, 7, 5000, 1000, 180, 1, 2, Color(0xFF3E9E43), 'pharma'),
-  RoomType('enfermaria', 'Enfermaria', 650, 9, 45000, 8000, 600, 1, 3, Color(0xFFF57C2A), 'bed'),
-  RoomType('radiologia', 'Radiologia', 2800, 10, 4e5, 65000, 300, 2, 4, Color(0xFF5468A8), 'scan'),
-  RoomType('centro', 'Centro Cirúrgico', 13000, 13, 4e6, 5.5e5, 1200, 2, 5, Color(0xFF139C80), 'surgery'),
-  RoomType('uti', 'UTI', 6e4, 15, 4e7, 5e6, 2500, 3, 6, Color(0xFFE0473A), 'icu'),
-  RoomType('maternidade', 'Maternidade', 2.8e5, 17, 4e8, 5e7, 5000, 3, 7, Color(0xFFE9A800), 'baby'),
+  RoomType('laboratorio', 'Laboratório', 40, 6, 400, 120, 15, 1, 1, Color(0xFF9B59D0), 'lab'),
+  RoomType('farmacia', 'Farmácia', 160, 7, 3500, 1000, 70, 1, 2, Color(0xFF3E9E43), 'pharma'),
+  RoomType('enfermaria', 'Enfermaria', 650, 9, 30000, 8000, 200, 1, 3, Color(0xFFF57C2A), 'bed'),
+  RoomType('radiologia', 'Radiologia', 2800, 10, 2.5e5, 65000, 450, 1, 4, Color(0xFF5468A8), 'scan'),
+  RoomType('centro', 'Centro Cirúrgico', 13000, 13, 2.2e6, 5.5e5, 900, 1, 5, Color(0xFF139C80), 'surgery'),
+  RoomType('uti', 'UTI', 6e4, 15, 2e7, 5e6, 1600, 1, 6, Color(0xFFE0473A), 'icu'),
+  RoomType('maternidade', 'Maternidade', 2.8e5, 17, 1.8e8, 5e7, 2800, 1, 7, Color(0xFFE9A800), 'baby'),
 ];
 RoomType roomById(String id) => roomTypes.firstWhere((r) => r.id == id);
 

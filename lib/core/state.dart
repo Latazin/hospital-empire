@@ -119,11 +119,22 @@ class GameState extends ChangeNotifier {
   }
 
   // ---------------- salas ----------------
-  String? lockReason(RoomType t) { if (unit < t.unit) return 'Requer a ${t.unit}ª unidade'; if (rep < t.rep) return 'Requer ${t.rep.toInt()} de reputação'; return null; }
+  /// Próxima sala a construir (o hospital cresce uma sala por vez).
+  RoomType? get nextRoom { for (final t in roomTypes) { if (!built(t.id)) return t; } return null; }
+  int get builtCount => roomTypes.where((t) => built(t.id)).length;
+  bool get hospitalDone => nextRoom == null;
+  double get repMult => 1 + 0.6 * (unit - 1);
+  double repNeed(RoomType t) => (t.rep / repMult).roundToDouble();
+  String? lockReason(RoomType t) {
+    final n = nextRoom;
+    if (n != null && n.id != t.id && !built(t.id)) return 'Construa antes: ${n.name}';
+    if (rep < repNeed(t)) return 'Requer ${repNeed(t).toInt()} de reputação';
+    return null;
+  }
   bool canBuild(RoomType t) => !built(t.id) && lockReason(t) == null && money >= t.build;
   bool buildRoom(String id) {
     final t = roomById(id); if (!canBuild(t)) { fx?.sfx('nope'); return false; }
-    money -= t.build; rooms[id] = RoomSave(b: true); addSt('builds'); addXP(25); changed(); return true;
+    money -= t.build; rooms[id] = RoomSave(b: true); addSt('builds'); addXP(25 + 15.0 * builtCount); changed(); return true;
   }
   (double, int) upPreview(RoomType t, int n) {
     final r = rooms[t.id]!; double total = 0; var lv = r.l, k = 0;
@@ -251,7 +262,7 @@ class GameState extends ChangeNotifier {
   void claimObj() { final o = curObj; if (o == null || o.$2 < 1) return; obj++; gold += o.$3; fx?.sfx('cash'); fx?.flyGold(o.$3); fx?.confetti(24); fx?.toast('Objetivo concluído! +${o.$3} ouro'); changed(); }
 
   // ---------------- prestígio ----------------
-  bool get canPrestige => runEarned >= presReq;
+  bool get canPrestige => hospitalDone;
   VoidCallback? onReset;
   void prestige() {
     if (!canPrestige) return;

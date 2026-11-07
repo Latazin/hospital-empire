@@ -21,7 +21,7 @@ class SceneRenderer extends Component {
 
   final Paint _p = Paint()..filterQuality = FilterQuality.medium..isAntiAlias = true;
   final Paint _shadow = Paint()..color = const Color(0x40141A33)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-  static final Map<String, TextPainter> _tc = {};
+  static final Map<String, _OT> _tc = {};
 
   // ---------------- dia/noite ----------------
   double night = 0, dusk = 0;
@@ -48,11 +48,9 @@ class SceneRenderer extends Component {
     if (flip) { c.save(); c.translate(x, 0); c.scale(-1, 1); c.translate(-x, 0); c.drawImageRect(sp.img, sp.src, Rect.fromLTWH(x - (sp.src.width - sp.ax) * scale, dst.top, dst.width, dst.height), _p); c.restore(); }
     else { c.drawImageRect(sp.img, sp.src, dst, _p); }
   }
-  TextPainter _text(String t, double size, Color color, {Color? stroke}) {
+  _OT _text(String t, double size, Color color, {Color? stroke}) {
     final k = '$t|$size|${color.toARGB32()}|${stroke?.toARGB32()}';
-    return _tc[k] ??= (TextPainter(
-      text: TextSpan(text: t, style: TextStyle(fontFamily: 'Lilita', fontSize: size, color: color, height: 1, shadows: stroke == null ? null : [for (final o in const [Offset(0, 3), Offset(2, 0), Offset(-2, 0), Offset(0, -2), Offset(2, 2), Offset(-2, 2)]) Shadow(color: stroke, offset: o)])),
-      textDirection: TextDirection.ltr)..layout());
+    return _tc[k] ??= _OT(t, size, color, stroke);
   }
   void txt(Canvas c, String t, Offset at, double size, Color color, {Color stroke = const Color(0xFF1E2A47)}) {
     if (_tc.length > 400) _tc.clear();
@@ -111,6 +109,14 @@ class SceneRenderer extends Component {
     }
   }
 
+  /// Efeito "mola" da sala ao melhorar (achata e estica a partir do chão).
+  void _pop(Canvas c, RoomRt rm, void Function() draw) {
+    if (rm.pop <= 0) { draw(); return; }
+    final k = 1 - rm.pop, e = math.sin(k * math.pi * 3) * math.exp(-k * 3.2) * 0.09;
+    final o = iso(rm.x + 2, rm.y + 2.5);
+    c.save(); c.translate(o.dx, o.dy); c.scale(1 - e * 0.6, 1 + e); c.translate(-o.dx, -o.dy); draw(); c.restore();
+  }
+
   // ---------------- personagens ----------------
   Spr? _frame(Person p, String dir) {
     final v = Art.chars[p.sprite]; if (v == null) return null;
@@ -150,10 +156,12 @@ class SceneRenderer extends Component {
     // pisos e paredes das áreas
     spr(c, 'rec_${GameState.tier(s.rl)}', 0, 0);
     spr(c, 'tre_${math.min(3, s.trl ~/ 10)}', 0, 0);
+    final next = s.nextRoom;
     for (final rm in w.rooms) {
       final b = s.built(rm.t.id);
+      if (!b && rm.t != next) { spr(c, 'garden_${rm.t.plot % 4}', rm.x, rm.y); continue; }
       if (!b || rm.buildAnim > 0) { spr(c, rm.top ? 'lot_top' : 'lot_bot', rm.x, rm.y); continue; }
-      spr(c, 'room_${rm.t.id}_${GameState.tier(s.lvlOf(rm.t.id))}', rm.x, rm.y);
+      _pop(c, rm, () => spr(c, 'room_${rm.t.id}_${GameState.tier(s.lvlOf(rm.t.id))}', rm.x, rm.y));
     }
     // objetos ordenados por profundidade
     final items = <(double, void Function())>[];
@@ -164,7 +172,7 @@ class SceneRenderer extends Component {
       final l = s.lvlOf(rm.t.id), tier = GameState.tier(l), n = GameState.slots(l);
       for (var i = 0; i < n; i++) {
         final x = rm.x + colX[i % 2], y = rm.y + rowY[i >> 1];
-        items.add((x + y + 0.9, () => spr(c, 'st_${rm.t.id}_$tier', x, y)));
+        items.add((x + y + 0.9, () => _pop(c, rm, () => spr(c, 'st_${rm.t.id}_$tier', x, y))));
       }
       if (rm.stash > 0.5) {
         final pl = rm.pile(), n = (1 + math.log(rm.stash + 1) / math.ln10 * 1.3).clamp(1, 14).toInt();
@@ -202,6 +210,11 @@ class SceneRenderer extends Component {
     for (final it in items) { it.$2(); }
     spr(c, 'ov_front', 0, 0);
     spr(c, 'ov_over', 0, 0);
+    for (final rm in w.rooms) {
+      if (rm.glow <= 0.01) continue;
+      final o = iso(rm.x + 2, rm.y + 2.5, 20);
+      c.drawCircle(o, 260, Paint()..blendMode = BlendMode.plus..shader = ui.Gradient.radial(o, 260, [Color.fromRGBO(255, 226, 122, 0.55 * rm.glow), Color.fromRGBO(255, 200, 80, 0.18 * rm.glow), const Color(0x00FFC850)], [0, 0.45, 1]));
+    }
     _clouds(c);
     _night(c);
     _labels(c);
@@ -239,6 +252,7 @@ class SceneRenderer extends Component {
   }
 
   void _labels(Canvas c) {
+    final next = s.nextRoom;
     var p = iso(2.5, 3.6, 84);
     plate(c, 'Recepção  Nv ${s.rl}', p, 22, const Color(0xFFE84A7F));
     final q = w.queue.length, mx = s.qmax;
@@ -252,12 +266,14 @@ class SceneRenderer extends Component {
     for (final rm in w.rooms) {
       final cc = iso(rm.x + 2, rm.y + 2.5, rm.top ? 92 : 80), t = rm.t;
       if (!s.built(rm.t.id)) {
+        if (t != next) continue;
         final why = s.lockReason(t);
         if (why != null) { plate(c, t.name, cc, 22, const Color(0xFF5E6B85)); _lock(c, cc + const Offset(0, -40)); txt(c, why, cc + const Offset(0, 36), 19, Colors.white); }
         else {
           final can = s.money >= t.build, sc = can ? 1 + 0.07 * math.sin(w.t * 6) : 1.0;
           c.save(); c.translate(cc.dx, cc.dy); c.scale(sc); plate(c, 'CONSTRUIR ${t.name}', Offset.zero, 22, can ? const Color(0xFF3FD46B) : const Color(0xFF8D99AE)); c.restore();
           txt(c, '\$${fmt(t.build)}', cc + const Offset(0, 38), 24, can ? const Color(0xFFC8FFB0) : Colors.white);
+          if (can) _bigArrow(c, cc + Offset(0, -70 - (math.sin(w.t * 6).abs()) * 22));
         }
         continue;
       }
@@ -270,6 +286,12 @@ class SceneRenderer extends Component {
     }
     for (final g in w.gifts) { if (g.z <= 0.5) plate(c, 'TOQUE!', iso(g.gx, g.gy, 44 + math.sin(w.t * 5) * 3), 18, const Color(0xFFFFC531), fg: Colors.white); }
     for (final pp in w.people) { _personOver(c, pp); }
+  }
+  void _bigArrow(Canvas c, Offset o) {
+    final p = Path()..moveTo(o.dx, o.dy + 30)..lineTo(o.dx + 28, o.dy)..lineTo(o.dx + 12, o.dy)..lineTo(o.dx + 12, o.dy - 26)..lineTo(o.dx - 12, o.dy - 26)..lineTo(o.dx - 12, o.dy)..lineTo(o.dx - 28, o.dy)..close();
+    c.drawPath(p.shift(const Offset(0, 5)), Paint()..color = const Color(0x55141A33));
+    c.drawPath(p, Paint()..color = const Color(0xFF1E2A47)..style = PaintingStyle.stroke..strokeWidth = 7..strokeJoin = StrokeJoin.round);
+    c.drawPath(p, Paint()..shader = ui.Gradient.linear(o - const Offset(0, 26), o + const Offset(0, 30), [const Color(0xFFA8FFB8), const Color(0xFF22B04A)]));
   }
   void _star(Canvas c, Offset at, double r) {
     final path = Path();
@@ -332,6 +354,15 @@ class SceneRenderer extends Component {
           c.drawPath(path, Paint()..color = const Color(0xFF1E2A47).withValues(alpha: a)..style = PaintingStyle.stroke..strokeWidth = 4..strokeJoin = StrokeJoin.round);
           c.drawPath(path, Paint()..color = const Color(0xFF3FD46B).withValues(alpha: a));
           break;
+        case 'ring':
+          final k = q.life / q.max, rad = q.s + k * 260;
+          c.drawOval(Rect.fromCenter(center: Offset(q.x, q.y), width: rad * 2, height: rad), Paint()..color = q.c.withValues(alpha: (1 - k) * 0.9)..style = PaintingStyle.stroke..strokeWidth = 10 * (1 - k) + 2);
+          break;
+        case 'beam':
+          final k = q.life / q.max, al = math.sin(k * math.pi), wd = q.s * (0.6 + 0.4 * al);
+          final r = Rect.fromLTWH(q.x - wd / 2, q.y - 900, wd, 900);
+          c.drawRect(r, Paint()..blendMode = BlendMode.plus..shader = ui.Gradient.linear(Offset(r.left, 0), Offset(r.right, 0), [q.c.withValues(alpha: 0), q.c.withValues(alpha: 0.5 * al), q.c.withValues(alpha: 0)]));
+          break;
         case 'bolt':
           final o = Offset(q.x, q.y);
           final path = Path()..moveTo(o.dx + 4, o.dy - 16)..lineTo(o.dx - 8, o.dy + 2)..lineTo(o.dx, o.dy + 2)..lineTo(o.dx - 4, o.dy + 16)..lineTo(o.dx + 9, o.dy - 3)..lineTo(o.dx + 1, o.dy - 3)..close();
@@ -341,12 +372,31 @@ class SceneRenderer extends Component {
       }
     }
     for (final f in w.floats) {
-      final k = f.t / 1.25, sc = k < 0.12 ? 0.5 + k / 0.12 * 0.7 : 1.2 - math.min(0.2, (k - 0.12) * 0.6);
+      final k = f.t / 1.25, sc = k < 0.1 ? 0.3 + k / 0.1 * 1.05 : k < 0.2 ? 1.35 - (k - 0.1) / 0.1 * 0.3 : 1.05 - math.min(0.1, (k - 0.2) * 0.2);
       final tp = _text(f.s, f.size, f.color, stroke: const Color(0xFF1E2A47));
       c.save(); c.translate(f.x, f.y - k * 80); c.scale(sc);
       if (k > 0.7) { c.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, (1 - k) / 0.3)); tp.paint(c, Offset(-tp.width / 2, -tp.height / 2)); c.restore(); }
       else { tp.paint(c, Offset(-tp.width / 2, -tp.height / 2)); }
       c.restore();
     }
+  }
+}
+
+/// Texto com contorno de verdade (traço + preenchimento), estilo jogo.
+class _OT {
+  late final TextPainter fill;
+  TextPainter? line;
+  _OT(String t, double size, Color color, Color? stroke) {
+    TextStyle st(Paint? fg) => TextStyle(fontFamily: 'Fredoka', fontWeight: FontWeight.w700, fontSize: size, height: 1, color: fg == null ? color : null, foreground: fg);
+    fill = TextPainter(text: TextSpan(text: t, style: st(null)), textDirection: TextDirection.ltr)..layout();
+    if (stroke != null) {
+      line = TextPainter(text: TextSpan(text: t, style: st(Paint()..style = PaintingStyle.stroke..strokeWidth = math.max(3.0, size * 0.2)..strokeJoin = StrokeJoin.round..color = stroke)), textDirection: TextDirection.ltr)..layout();
+    }
+  }
+  double get width => fill.width;
+  double get height => fill.height;
+  void paint(Canvas c, Offset o) {
+    if (line != null) { line!.paint(c, o + Offset(0, fill.height * 0.07)); line!.paint(c, o); }
+    fill.paint(c, o);
   }
 }

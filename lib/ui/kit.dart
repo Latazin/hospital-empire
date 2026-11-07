@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -25,12 +25,21 @@ class K {
   static const grey = Color(0xFFA9B2C6);
 }
 
+/// Contorno suave (12 direções) + sombra projetada, como nos jogos casuais.
+List<Shadow> outlineShadows(double size, {Color color = K.navy}) {
+  final r = (size * 0.075).clamp(1.4, 4.0).toDouble();
+  return [
+    for (var i = 0; i < 12; i++) Shadow(color: color, offset: Offset(r * math.cos(i * math.pi / 6), r * math.sin(i * math.pi / 6))),
+    Shadow(color: color, offset: Offset(0, r * 1.7)),
+    Shadow(color: const Color(0x55000000), offset: Offset(0, r * 2.6), blurRadius: r),
+  ];
+}
 TextStyle display(double size, {Color color = Colors.white, bool outline = true}) => TextStyle(
-      fontFamily: 'Lilita', fontSize: size, color: color, height: 1.05, letterSpacing: 0.3,
-      shadows: outline ? const [Shadow(color: K.navy, offset: Offset(0, 2.5)), Shadow(color: K.navy, offset: Offset(1.6, 0)), Shadow(color: K.navy, offset: Offset(-1.6, 0)), Shadow(color: K.navy, offset: Offset(0, -1.4)), Shadow(color: Color(0x66000000), offset: Offset(0, 4), blurRadius: 2)] : null,
+      fontFamily: 'Fredoka', fontWeight: FontWeight.w700, fontSize: size, color: color, height: 1.08, letterSpacing: 0.2,
+      shadows: outline ? outlineShadows(size) : null,
     );
 TextStyle body(double size, {Color color = K.ink, FontWeight w = FontWeight.w800}) =>
-    TextStyle(fontFamily: 'Nunito', fontSize: size, color: color, fontWeight: w, height: 1.2, fontVariations: [ui.FontVariation('wght', w == FontWeight.w900 ? 900 : w == FontWeight.w700 ? 700 : 800)]);
+    TextStyle(fontFamily: 'Fredoka', fontSize: size, color: color, fontWeight: w == FontWeight.w900 ? FontWeight.w700 : w == FontWeight.w800 ? FontWeight.w600 : FontWeight.w500, height: 1.2);
 
 /// Ícone 3D renderizado.
 class Ico extends StatelessWidget {

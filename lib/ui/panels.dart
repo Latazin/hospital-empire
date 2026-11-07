@@ -61,8 +61,7 @@ class _RoomPanel extends StatelessWidget {
             const SizedBox(height: 8),
             InfoRow('Renda por paciente', '\$${fmt(s.income(t, 1))}'),
             InfoRow('Tempo de atendimento', '${s.serviceTime(t, 1).toStringAsFixed(1)}s'),
-            if (t.rep > 0) InfoRow('Reputação necessária', '${t.rep.toInt()} (você: ${s.rep.floor()})'),
-            if (t.unit > 1) InfoRow('Unidade necessária', '${t.unit}ª (você: ${s.unit}ª)'),
+            if (s.repNeed(t) > 0) InfoRow('Reputação necessária', '${s.repNeed(t).toInt()} (você: ${s.rep.floor()})'),
           ])),
           SizedBox(width: double.infinity, child: GBtn(enabled: s.canBuild(t), pulse: s.canBuild(t), onTap: () { if (s.buildRoom(id)) host.closePanel(); }, padding: const EdgeInsets.symmetric(vertical: 12), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('CONSTRUIR  ', style: display(22)), Price(fmt(t.build), size: 22)]))),
         ]);
@@ -74,14 +73,17 @@ class _RoomPanel extends StatelessWidget {
       return Column(children: [
         GCard(child: Column(children: [
           Row(children: [
-            Text('Nível $l', style: display(30, color: K.ink, outline: false)),
+            TweenAnimationBuilder<double>(key: ValueKey(l), tween: Tween(begin: 1.7, end: 1), duration: const Duration(milliseconds: 650), curve: Curves.elasticOut,
+              builder: (_, v, c) => Transform.scale(scale: v, alignment: Alignment.centerLeft, child: c),
+              child: Text('Nível $l', style: display(30, color: Color.lerp(K.ink, t.accent, 0.35)!, outline: false))),
             const SizedBox(width: 10),
             Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), decoration: BoxDecoration(color: t.accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)), child: Text(GameState.tierNames[tier], style: body(13, color: t.accent, w: FontWeight.w900))),
             const Spacer(),
             for (var k = 0; k < 3; k++) Opacity(opacity: k < tier ? 1 : 0.25, child: const Ico('star', size: 28)),
           ]),
           const SizedBox(height: 8),
-          GBar(value: max ? 1 : (l - prev) / (nx - prev), color: t.accent, height: 22, label: max ? 'MÁXIMO' : 'Nível $nx: $eff'),
+          TweenAnimationBuilder<double>(tween: Tween(end: max ? 1 : (l - prev) / (nx - prev)), duration: const Duration(milliseconds: 450), curve: Curves.easeOutBack,
+            builder: (_, v, __) => GBar(value: v, color: t.accent, height: 22, label: max ? 'MÁXIMO' : 'Nível $nx: $eff')),
           const SizedBox(height: 8),
           InfoRow('Renda por paciente', '\$${fmt(s.income(t, l))}', next: max ? null : '→ \$${fmt(s.income(t, l + 1))}'),
           InfoRow('Tempo de atendimento', '${s.serviceTime(t, l).toStringAsFixed(2)}s', next: max ? null : '→ ${s.serviceTime(t, l + 1).toStringAsFixed(2)}s'),
@@ -154,7 +156,8 @@ class _UpgradesPanel extends StatelessWidget {
         const SectionTitle('Infraestrutura'),
         infraCard(s, 'rl'), infraCard(s, 'tl'), infraCard(s, 'trl'),
         const SectionTitle('Salas'),
-        for (final t in roomTypes) _roomRow(t),
+        for (final t in roomTypes.where((t) => s.built(t.id) || t == s.nextRoom)) _roomRow(t),
+        if (roomTypes.length - s.builtCount > 1) Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 10), child: Text('+${roomTypes.length - s.builtCount - 1} salas misteriosas para descobrir', style: body(13, color: K.muted, w: FontWeight.w800))),
         const SectionTitle('Loja de ouro'),
         _shopRow('bolt', 'Renda x2 por 30 min', s.boostOn ? 'Ativo: ${fmtTime((s.gb - nowMs()) / 1000)} (acumula)' : 'Dobra toda a produção', 20, s.goldBoost),
         _shopRow('coin', 'Maleta de dinheiro', 'Vale 30 min de produção: \$${fmt(math.max(100.0, s.baseRate * 1800))}', 10, s.moneyPack),
@@ -290,22 +293,24 @@ class _ExpansionPanelState extends State<_ExpansionPanel> {
   Widget build(BuildContext context) {
     final s = widget.s;
     return Sheet(title: 'Expansão', icon: 'building', color: K.purple, onClose: widget.host.closePanel, child: _Live(s: s, builder: () {
-      final req = s.presReq, unl = roomTypes.where((t) => t.unit == s.unit + 1).map((t) => t.name).join(', ');
+      final n = s.builtCount, tot = roomTypes.length;
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         GCard(child: Row(children: [const Ico('building', size: 54), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(unitName(s.unit), style: display(22, color: K.ink, outline: false)), Text('Multiplicador permanente: x${s.prestigeMult.toStringAsFixed(2)}', style: body(13, color: K.muted))]))])),
         GCard(color: const Color(0xFFF4EEFF), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Próxima: ${unitName(s.unit + 1)}', style: body(17, w: FontWeight.w900)),
           const SizedBox(height: 8),
-          GBar(value: s.runEarned / req, height: 22, color: K.purple, label: '\$${fmt(s.runEarned)} / \$${fmt(req)}'),
+          Text('Complete o hospital construindo todas as salas.', style: body(13, color: K.muted)),
+          const SizedBox(height: 6),
+          GBar(value: n / tot, height: 24, color: K.purple, label: 'Salas $n / $tot'),
           const SizedBox(height: 10),
-          for (final line in ['Renda permanente x${(1 + 0.75 * s.unit).toStringAsFixed(2)}', '+${s.presGold} ouro', if (unl.isNotEmpty) 'Libera: $unl', 'Mantém gerentes, ouro, nível, colecionáveis e conquistas'])
+          for (final line in ['Renda permanente x${(1 + 0.75 * s.unit).toStringAsFixed(2)}', '+${s.presGold} ouro', 'Reputação exigida ${((1 - 1 / (1 + 0.6 * s.unit)) * 100).round()}% menor', 'Mantém gerentes, ouro, nível, colecionáveis e conquistas'])
             Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(children: [const Ico('arrow', size: 18), const SizedBox(width: 4), Expanded(child: Text(line, style: body(13.5, w: FontWeight.w800)))])),
           const SizedBox(height: 4),
           Text('Reinicia dinheiro, salas e infraestrutura (mantém 25% da reputação).', style: body(12.5, color: K.red, w: FontWeight.w800)),
         ])),
         GBtn(color: confirm ? K.red : K.purple, enabled: s.canPrestige, padding: const EdgeInsets.symmetric(vertical: 12),
           onTap: () { if (confirm) { s.prestige(); Save.save(s); widget.host.closePanel(); } else { setState(() => confirm = true); Future.delayed(const Duration(seconds: 4), () { if (mounted) setState(() => confirm = false); }); } },
-          child: Text(confirm ? 'TOQUE DE NOVO PARA CONFIRMAR' : s.canPrestige ? 'ABRIR NOVA UNIDADE' : 'Arrecade mais para expandir', style: display(19))),
+          child: Text(confirm ? 'TOQUE DE NOVO PARA CONFIRMAR' : s.canPrestige ? 'ABRIR NOVA UNIDADE' : 'Faltam ${tot - n} salas', style: display(19))),
       ]);
     }));
   }

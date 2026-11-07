@@ -9,6 +9,15 @@ void main() {
   test('formatação', () { expect(fmt(999), '999'); expect(fmt(1500), '1.50K'); });
   test('começa com o Consultório', () { final s = GameState(); expect(s.built('consultorio'), isTrue); expect(s.built('laboratorio'), isFalse); });
   test('melhoria gasta dinheiro', () { final s = GameState()..money = 1000; expect(s.upgradeRoom('consultorio', 1), isTrue); expect(s.lvlOf('consultorio'), 2); expect(s.money, lessThan(1000)); });
+  test('hospital cresce uma sala por vez', () {
+    final s = GameState()..money = 1e12..rep = 1e6;
+    expect(s.nextRoom?.id, 'laboratorio');
+    expect(s.buildRoom('farmacia'), isFalse);
+    expect(s.buildRoom('laboratorio'), isTrue);
+    expect(s.nextRoom?.id, 'farmacia');
+    for (final id in ['farmacia', 'enfermaria', 'radiologia', 'centro', 'uti', 'maternidade']) { expect(s.buildRoom(id), isTrue); }
+    expect(s.hospitalDone, isTrue); expect(s.canPrestige, isTrue);
+  });
   test('laboratório exige reputação', () { final s = GameState()..money = 1e9; expect(s.buildRoom('laboratorio'), isFalse); s.rep = 100; expect(s.buildRoom('laboratorio'), isTrue); });
   test('cofre e coleta', () { final s = GameState()..treasury = 200; final v = s.collect(); expect(v, 200); expect(s.treasury, 0); });
   test('salvar e carregar', () {
