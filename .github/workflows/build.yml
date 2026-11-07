@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,3 +39,16 @@ jobs:
         with:
           name: hospital-empire-aab
           path: build/app/outputs/bundle/release/app-release.aab
+      - name: Publicar APK/AAB no branch builds e na release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir out && cp build/app/outputs/flutter-apk/app-release.apk out/HospitalEmpire.apk && cp build/app/outputs/bundle/release/app-release.aab out/HospitalEmpire.aab
+          cd out && git init -q && git checkout -q -b builds
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "build ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" builds
+          cd ..
+          gh release delete latest -y --cleanup-tag || true
+          gh release create latest out/HospitalEmpire.apk out/HospitalEmpire.aab --title "Hospital Empire (última versão)" --notes "APK para instalar no celular e AAB para a Play Store." --target "${GITHUB_SHA}"

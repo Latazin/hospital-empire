@@ -35,3 +35,10 @@ jobs:
           git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
           git add -A && git commit -qm "capturas ${GITHUB_SHA}"
           git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" previews
+      - name: Publicar build web no branch webbuild
+        run: |
+          cd build/web && sed -i 's#<base href="/">##' index.html && rm -f flutter_service_worker.js
+          git init -q && git checkout -q -b webbuild
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "web ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" webbuild
