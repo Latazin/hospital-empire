@@ -1,7 +1,7 @@
 name: hospital_empire
 description: "Hospital Empire — Idle Tycoon. Construa e gerencie o maior império hospitalar!"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -25,6 +25,18 @@ flutter:
   assets:
     - assets/audio/
     - assets/images/
+    - assets/images/art/
+    - assets/images/art/sprites/
+    - assets/images/art/bg/
+    - assets/images/art/chars/
+    - assets/images/art/icons/
+  fonts:
+    - family: Lilita
+      fonts:
+        - asset: assets/fonts/LilitaOne-Regular.ttf
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito.ttf
 
 flutter_launcher_icons:
   android: true
